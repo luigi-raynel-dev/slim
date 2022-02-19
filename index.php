@@ -2,10 +2,11 @@
 
   require_once './vendor/autoload.php';
   
-  $dotenv = Dotenv\Dotenv::createImmutable(__DIR__);
-  $dotenv->load();
+  $dotenv = Dotenv\Dotenv::createUnsafeImmutable(__DIR__);
+	$dotenv->load();
 
   require_once './src/slimConfiguration.php';
+  require_once './src/basicAuth.php';
   require_once './routes/index.php';
   
 

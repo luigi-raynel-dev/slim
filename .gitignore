@@ -4,4 +4,4 @@ vendor/
 .settings/
 composer.lock
 env.php
-.env
+.env'
