@@ -2,9 +2,11 @@
 
   use function src\{
     slimConfiguration,
-    basicAuth
+    basicAuth,
+    jwtAuth
   };
   use App\Controllers\AuthController;
+  use App\Middlewares\JwtDateTime;
   use Tuupola\Middleware\HttpBasicAuthentication;
   use Tuupola\Middleware\JwtAuthentication;
 
@@ -14,19 +16,17 @@
   // ROTAS
   // ROTA PARA SE LOGAR NA API
   $app->post('/auth', AuthController::class . ':login');
-  $app->get('/test', function() { echo 'oi'; } )
-    ->add(function($request,$response,$next) {
+  // Rota para recuperar o refresh_token
+  $app->post('/refresh-token', AuthController::class . ':refreshToken');
+  // Rota para recuperar o conteúdo do token
+  $app->get('/token', function($request,$response) { 
       $token = $request->getAttribute('jwt');
-      $expiredDate = new \DateTime($token['expired_at']);
-      $now = new \DateTime();
-      if($expiredDate < $now) return $response->withStatus(401);
-      $response = $next($request,$response);
+      $response = $response->withJson($token);
+
       return $response;
-    })
-    ->add(new JwtAuthentication([
-      'SECRET' => getEnv('JWT_SECRET_KEY'),
-      'attribute' => 'jwt'
-    ]));
+   })
+    ->add(new JwtDateTime())
+    ->add(jwtAuth());
   // ROTAS DE STORES
   require_once 'stores.php';
 

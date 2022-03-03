@@ -58,7 +58,77 @@
       // Gera token com criptografia HS256 no payload passando a assinatura
       $token = JWT::encode($tokenPayload, getenv('JWT_SECRET_KEY'),'HS256');
       $refreshToken= [
-        'email' => $user->getEmail()
+        'email' => $user->getEmail(),
+        'random' => uniqid()
+      ];
+      $refreshToken = JWT::encode($refreshToken,getenv('JWT_SECRET_KEY'),'HS256');
+
+      $tokenModel = new TokenModel;
+      $tokenModel
+        ->setToken($token)
+        ->setRefreshToken($refreshToken)
+        ->setExpired_at($expiredAt)
+        ->setUserId($user->getId());
+
+      $tokenDao = new TokenDao();
+      $tokenDao->createToken($tokenModel);
+
+      $response = $response->withJson([
+        "token" => $token,
+        "refresh_token" => $refreshToken
+      ]);
+
+      return $response;
+    }
+
+    /**
+     * método responsável por retornar o novo token pelo refresh_token
+     * @param  Request $request
+     * @param  Response $response
+     * @param  array $args
+     * @return Response
+     */
+    public function refreshToken(Request $request, Response $response, array $args) : Response
+    {
+      // CAPTURA O REFRESH TOKEN ENVIADO PELO USUÁRIO
+      $data = $request->getParseBody();
+      $refreshToken = $data['refresh_token'];
+      $expired_date = $data['expired_date'] ?? null;
+
+      // DECODIFICA O REFRESH TOKEN 
+      $tokenDecoded = JWT::decode(
+        $refreshToken, 
+        new Key(getenv('JWT_SECRET_KEY'),'HS256')
+      );
+
+      // VERIFICA SE O REFRESH TOKEN EXISTE
+      $tokenDao = new TokenDao();
+      $refreshTokenExists = $tokenDao->verifyRefreshToken($refreshToken);
+      if(!refreshTokenExists) return $response->withStatus(401);
+
+      // INSTANCIA O DAO PARA VERIFICAR SE O USUÁRIO EXISTE NO DB 
+      $userDao = new UserDao;
+      $user = $userDao->getUserByEmail($tokenDecoded->email);
+      if(is_null($user)) return $response->withStatus(401);
+
+      // Data de expiração do token
+      $expiredAt = is_null($expired_date) ? (new \DateTime())
+      ->modify('+2 days')
+      ->format('Y-m-d H:i:s') : $expired_date;
+      
+      // Construindo payload
+      $tokenPayload = [
+        'sub' => $user->getId(),
+        'name' => $user->getName(),
+        'email' => $user->getEmail(),
+        'expired_at' => $expiredAt
+      ];
+
+      // Gera token com criptografia HS256 no payload passando a assinatura
+      $token = JWT::encode($tokenPayload, getenv('JWT_SECRET_KEY'),'HS256');
+      $refreshToken= [
+        'email' => $user->getEmail(),
+        'random' => uniqid()
       ];
       $refreshToken = JWT::encode($refreshToken,getenv('JWT_SECRET_KEY'),'HS256');
 

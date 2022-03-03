@@ -40,6 +40,27 @@
         'user_id' => $token->getUserId(),
       ]);
     }
+    
+    /**
+     * Busca o token na tabela a partir do refresh_token
+     *
+     * @param string $refreshToken
+     * @return boolean
+     */
+    public function verifyRefreshToken(string $refreshToken): bool
+    {
+      $stmt = $this->pdo
+        ->prepare("SELECT 
+          id
+          FROM tokens
+          WHERE refresh_token = :refresh_token;
+        ");
+      
+      $stmt->bindParam('refresh_token', $refreshToken);
+      $stmt->execute();
+      $tokens = $stmt->fetchAll(\PDO::FETCH_ASSOC);
+      return count($tokens) === 0 ? false : true;
+    }
 
 
   }
